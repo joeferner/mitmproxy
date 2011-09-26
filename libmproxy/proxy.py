@@ -23,7 +23,7 @@ class ProxyError(Exception):
 
 
 class ProxyConfig:
-    def __init__(self, certfile = None, ciphers = None, cacert = None, cert_wait_time=0, body_size_limit = None, transparent_ssl = False, ip_address_map = None):
+    def __init__(self, certfile = None, ciphers = None, cacert = None, cert_wait_time=0, body_size_limit = None, transparent_ssl = False, ip_address_map = {}):
         self.certfile = certfile
         self.ciphers = ciphers
         self.cacert = cacert
@@ -32,8 +32,6 @@ class ProxyConfig:
         self.body_size_limit = body_size_limit
         self.transparent_ssl = transparent_ssl
         self.ip_address_map = ip_address_map
-        if self.ip_address_map == None:
-            self.ip_address_map = "ipaddress.map" 
 
 def read_chunked(fp, limit):
     content = ""
@@ -249,10 +247,6 @@ class ProxyHandler(SocketServer.StreamRequestHandler):
         self.config = config
         self.mqueue = q
         self.dns_lookup_cache = {}
-        if self.config.transparent_ssl:
-            f = open(self.config.ip_address_map, "r")
-            self.dns_lookup_cache = eval(f.read())
-            f.close()
 
         SocketServer.StreamRequestHandler.__init__(self, request, client_address, server)
 
@@ -510,6 +504,12 @@ def process_proxy_options(parser, options):
     if getattr(options, "cache", None) is not None:
         options.cache = os.path.expanduser(options.cache)
     body_size_limit = utils.parse_size(options.body_size_limit)
+    
+    if options.transparent_ssl:
+        f = open(options.ip_address_map, "r")
+        ip_address_map = eval(f.read())
+        f.close() 
+    
     return ProxyConfig(
         certfile = options.cert,
         cacert = cacert,
@@ -517,7 +517,7 @@ def process_proxy_options(parser, options):
         cert_wait_time = options.cert_wait_time,
         body_size_limit = body_size_limit,
         transparent_ssl = options.transparent_ssl,
-        ip_address_map = options.ip_address_map
+        ip_address_map = ip_address_map
     )
 
 
