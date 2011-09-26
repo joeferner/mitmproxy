@@ -246,12 +246,11 @@ class ProxyHandler(SocketServer.StreamRequestHandler):
     def __init__(self, config, request, client_address, server, q):
         self.config = config
         self.mqueue = q
-        self.dns_lookup_cache = {}
 
         SocketServer.StreamRequestHandler.__init__(self, request, client_address, server)
 
     def get_host_from_ip_address(self, ip_address):
-        host = self.dns_lookup_cache.get(ip_address)
+        host = self.config.ip_address_map.get(ip_address)
         if host == None:
             # TODO: log this event to the console. see ConsoleMaster.add_event. How do I get to this console?
             host = "unknown_" + ip_address
@@ -507,6 +506,7 @@ def process_proxy_options(parser, options):
         options.cache = os.path.expanduser(options.cache)
     body_size_limit = utils.parse_size(options.body_size_limit)
     
+    ip_address_map = {}
     if options.transparent_ssl:
         f = open(options.ip_address_map, "r")
         ip_address_map = eval(f.read())
