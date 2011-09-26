@@ -251,22 +251,24 @@ class ProxyHandler(SocketServer.StreamRequestHandler):
         SocketServer.StreamRequestHandler.__init__(self, request, client_address, server)
 
     def get_host_from_ip_address(self, ip_address):
-        # TODO: log this event to the console. see ConsoleMaster.add_event. How do I get to this console?
-        return "unknown_" + ip_address
+        host = self.dns_lookup_cache.get(ip_address)
+        if host == None:
+            # TODO: log this event to the console. see ConsoleMaster.add_event. How do I get to this console?
+            host = "unknown_" + ip_address
+        return host 
+
+    def get_original_ip_address(self):
+        SO_ORIGINAL_DST = 80
+        original_dst = self.connection.getsockopt(socket.IPPROTO_IP, SO_ORIGINAL_DST, 16)
+        srv_port, ip_address = struct.unpack("!2xH4s8x", original_dst)
+        ip_address = socket.inet_ntoa(ip_address)
+        return ip_address
 
     def handle(self):
         cc = flow.ClientConnect(self.client_address)
         if self.config.transparent_ssl:
-            SO_ORIGINAL_DST = 80
-
-            original_dst = self.connection.getsockopt(socket.IPPROTO_IP, SO_ORIGINAL_DST, 16)
-            srv_port, ip_address = struct.unpack("!2xH4s8x", original_dst)
-            ip_address = socket.inet_ntoa(ip_address)
-            print >> sys.stderr, "ip_address: ", ip_address
-            host = self.dns_lookup_cache.get(ip_address)
-            if host == None:
-                host = self.get_host_from_ip_address(ip_address)
-                self.dns_lookup_cache[ip_address] = host
+            orig_ip_address = self.get_original_ip_address()
+            host = self.get_host_from_ip_address(orig_ip_address)
             self.ssl_wrap_connection(host)
         cc._send(self.mqueue)
         while not cc.close:
