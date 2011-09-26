@@ -140,6 +140,11 @@ def common_options(parser):
         action="store_true", dest="transparent_ssl", default=False,
         help= "Transparent SSL proxy mode."
     )
+    parser.add_option(
+        "--ipaddrmap",
+        action="store", dest="ip_address_map", default="ipaddress.map",
+        help= "IP Address to host name mapping for transparent SSL."
+    )
 
     group = optparse.OptionGroup(parser, "Server Replay")
     group.add_option(
