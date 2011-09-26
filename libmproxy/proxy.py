@@ -512,7 +512,7 @@ def process_proxy_options(parser, options):
         cacert = cacert,
         ciphers = options.ciphers,
         cert_wait_time = options.cert_wait_time,
-        body_size_limit = body_size_limit
+        body_size_limit = body_size_limit,
         transparent_ssl = options.transparent_ssl
     )
 

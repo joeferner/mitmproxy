@@ -136,9 +136,9 @@ def common_options(parser):
     )
 
     parser.add_option(
-        "--transssl",
+        "--transparentssl",
         action="store_true", dest="transparent_ssl", default=False,
-        help= "Transparent SSL proxy."
+        help= "Transparent SSL proxy mode."
     )
 
     group = optparse.OptionGroup(parser, "Server Replay")
