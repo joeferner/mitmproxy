@@ -9,6 +9,7 @@ import sys, os, string, socket, time
 import shutil, tempfile, threading
 import optparse, SocketServer, ssl
 import utils, flow
+import struct
 
 NAME = "mitmproxy"
 
@@ -29,6 +30,7 @@ class ProxyConfig:
         self.certdir = None
         self.cert_wait_time = cert_wait_time
         self.body_size_limit = body_size_limit
+        self.transparent_ssl = transparent_ssl
 
 
 def read_chunked(fp, limit):
@@ -244,10 +246,31 @@ class ProxyHandler(SocketServer.StreamRequestHandler):
     def __init__(self, config, request, client_address, server, q):
         self.config = config
         self.mqueue = q
+        self.dns_lookup_cache = {}
+        if self.config.transparent_ssl:
+            f = open("ipaddress.map", "r")
+            self.dns_lookup_cache = eval(f.read())
+            f.close()
+
         SocketServer.StreamRequestHandler.__init__(self, request, client_address, server)
+
+    def get_host_from_ip_address(self, ip_address):
+        return "unknown_" + ip_address
 
     def handle(self):
         cc = flow.ClientConnect(self.client_address)
+        if self.config.transparent_ssl:
+            SO_ORIGINAL_DST = 80
+
+            original_dst = self.connection.getsockopt(socket.IPPROTO_IP, SO_ORIGINAL_DST, 16)
+            srv_port, ip_address = struct.unpack("!2xH4s8x", original_dst)
+            ip_address = socket.inet_ntoa(ip_address)
+            print >> sys.stderr, "ip_address: ", ip_address
+            host = self.dns_lookup_cache.get(ip_address)
+            if host == None:
+                host = self.get_host_from_ip_address(ip_address)
+                self.dns_lookup_cache[ip_address] = host
+            self.ssl_wrap_connection(host)
         cc._send(self.mqueue)
         while not cc.close:
             self.handle_request(cc)
@@ -311,6 +334,20 @@ class ProxyHandler(SocketServer.StreamRequestHandler):
             if not ret:
                 raise ProxyError(502, "mitmproxy: Unable to generate dummy cert.")
             return ret
+        
+    def ssl_wrap_connection(self, host):
+        kwargs = dict(
+            certfile = self.find_cert(host),
+            keyfile = self.config.certfile or self.config.cacert,
+            server_side = True,
+            ssl_version = ssl.PROTOCOL_SSLv23,
+            do_handshake_on_connect = True,
+        )
+        if sys.version_info[1] > 6:
+            kwargs["ciphers"] = self.config.ciphers
+        self.connection = ssl.wrap_socket(self.connection, **kwargs)
+        self.rfile = FileLike(self.connection)
+        self.wfile = FileLike(self.connection)
 
     def read_request(self, client_conn):
         line = self.rfile.readline()
@@ -332,18 +369,7 @@ class ProxyHandler(SocketServer.StreamRequestHandler):
                         '\r\n'
                         )
             self.wfile.flush()
-            kwargs = dict(
-                certfile = self.find_cert(host),
-                keyfile = self.config.certfile or self.config.cacert,
-                server_side = True,
-                ssl_version = ssl.PROTOCOL_SSLv23,
-                do_handshake_on_connect = True,
-            )
-            if sys.version_info[1] > 6:
-                kwargs["ciphers"] = self.config.ciphers
-            self.connection = ssl.wrap_socket(self.connection, **kwargs)
-            self.rfile = FileLike(self.connection)
-            self.wfile = FileLike(self.connection)
+            self.ssl_wrap_connection(host)
             method, scheme, host, port, path, httpminor = parse_request_line(self.rfile.readline())
         if scheme is None:
             scheme = "https"
@@ -487,6 +513,7 @@ def process_proxy_options(parser, options):
         ciphers = options.ciphers,
         cert_wait_time = options.cert_wait_time,
         body_size_limit = body_size_limit
+        transparent_ssl = options.transparent_ssl
     )
 
 

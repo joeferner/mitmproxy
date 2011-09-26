@@ -135,6 +135,12 @@ def common_options(parser):
         help="Wait for specified number of seconds after a new cert is generated. This can smooth over small discrepancies between the client and server times."
     )
 
+    parser.add_option(
+        "--transssl",
+        action="store_true", dest="transparent_ssl", default=False,
+        help= "Transparent SSL proxy."
+    )
+
     group = optparse.OptionGroup(parser, "Server Replay")
     group.add_option(
         "-S",
