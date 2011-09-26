@@ -23,7 +23,7 @@ class ProxyError(Exception):
 
 
 class ProxyConfig:
-    def __init__(self, certfile = None, ciphers = None, cacert = None, cert_wait_time=0, body_size_limit = None):
+    def __init__(self, certfile = None, ciphers = None, cacert = None, cert_wait_time=0, body_size_limit = None, transparent_ssl = False):
         self.certfile = certfile
         self.ciphers = ciphers
         self.cacert = cacert
