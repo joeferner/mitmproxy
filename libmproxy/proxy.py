@@ -257,6 +257,7 @@ class ProxyHandler(SocketServer.StreamRequestHandler):
         SocketServer.StreamRequestHandler.__init__(self, request, client_address, server)
 
     def get_host_from_ip_address(self, ip_address):
+        # TODO: log this event to the console. see ConsoleMaster.add_event. How do I get to this console?
         return "unknown_" + ip_address
 
     def handle(self):
