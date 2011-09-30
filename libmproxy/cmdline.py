@@ -145,6 +145,11 @@ def common_options(parser):
         action="store", dest="ip_address_map", default="ipaddress.map",
         help= "IP Address to host name mapping for transparent SSL."
     )
+    parser.add_option(
+        "--forceschema",
+        action="store", dest="force_schema", default=None,
+        help="Forces the schema to the given string (ie http or https)"
+    )
 
     group = optparse.OptionGroup(parser, "Server Replay")
     group.add_option(

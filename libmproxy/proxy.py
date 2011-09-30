@@ -23,7 +23,7 @@ class ProxyError(Exception):
 
 
 class ProxyConfig:
-    def __init__(self, certfile = None, ciphers = None, cacert = None, cert_wait_time=0, body_size_limit = None, transparent_ssl = False, ip_address_map = {}):
+    def __init__(self, certfile = None, ciphers = None, cacert = None, cert_wait_time=0, body_size_limit = None, transparent_ssl = False, ip_address_map = {}, force_schema = None):
         self.certfile = certfile
         self.ciphers = ciphers
         self.cacert = cacert
@@ -32,6 +32,7 @@ class ProxyConfig:
         self.body_size_limit = body_size_limit
         self.transparent_ssl = transparent_ssl
         self.ip_address_map = ip_address_map
+        self.force_schema = force_schema
 
 def read_chunked(fp, limit):
     content = ""
@@ -370,7 +371,10 @@ class ProxyHandler(SocketServer.StreamRequestHandler):
             self.ssl_wrap_connection(host)
             method, scheme, host, port, path, httpminor = parse_request_line(self.rfile.readline())
         if scheme is None:
-            scheme = "https"
+            if self.config.force_schema is None:
+                schema = "https"
+            else:
+                schema = self.config.force_schema
         headers = flow.Headers()
         headers.read(self.rfile)
         if host is None and "host" in headers:
@@ -519,7 +523,8 @@ def process_proxy_options(parser, options):
         cert_wait_time = options.cert_wait_time,
         body_size_limit = body_size_limit,
         transparent_ssl = options.transparent_ssl,
-        ip_address_map = ip_address_map
+        ip_address_map = ip_address_map,
+        force_schema = options.force_schema
     )
 
 
