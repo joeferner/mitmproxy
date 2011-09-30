@@ -372,9 +372,9 @@ class ProxyHandler(SocketServer.StreamRequestHandler):
             method, scheme, host, port, path, httpminor = parse_request_line(self.rfile.readline())
         if scheme is None:
             if self.config.force_schema is None:
-                schema = "https"
+                scheme = "https"
             else:
-                schema = self.config.force_schema
+                scheme = self.config.force_schema
         headers = flow.Headers()
         headers.read(self.rfile)
         if host is None and "host" in headers:
